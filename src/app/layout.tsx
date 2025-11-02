@@ -3,8 +3,18 @@ import "@/styles/globals.css";
 import { SocketProvider } from "@/context/SocketContext";
 
 export const metadata: Metadata = {
-  title: "Chat App - Real-time Messaging",
-  description: "A real-time chat application built with Next.js, React, and Socket.IO",
+  title: "GhostRooms",
+  description: "Session-only chat. No accounts, no history.",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { url: '/icon-512.svg', sizes: '512x512', type: 'image/svg+xml' }
+    ],
+    apple: '/icon-192.svg',
+  },
+  manifest: '/site.webmanifest',
+  themeColor: '#6366f1',
 };
 
 export default function RootLayout({
