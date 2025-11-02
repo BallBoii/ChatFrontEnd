@@ -9,12 +9,11 @@ import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MobileNav } from "@/components/chat/MobileNav";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { CuteBackground } from "@/components/chat/CuteBackground";
-import { Toaster } from "@/components/ui/sonner";
 import { Users, Settings as SettingsIcon, LogOut, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { useEventNotifications } from "@/components/chat/useEventNotifications";
 import { useSocket } from "@/context/SocketContext";
 import { roomService } from "@/lib/services/roomService";
 import type { Sticker } from "@/types/sticker";
@@ -28,6 +27,7 @@ export default function App() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
   const { messages, joinRoom, sendMessage, sendSticker, leaveRoom, participantCount, nickname } = useSocket();
+  const { success, error } = useEventNotifications();
 
   useEffect(() => {
     if (darkMode) {
@@ -74,9 +74,9 @@ export default function App() {
       // Load message history
       const history = await roomService.getMessages(joinedSession.roomToken, joinedSession.sessionToken, 50);
       // Messages from backend are already in UIMessage format via SocketContext
-    } catch (error) {
-      console.error('Failed to complete join:', error);
-      toast.error('Failed to join room');
+    } catch (err) {
+      console.error('Failed to complete join:', err);
+      error('Failed to join room');
     }
   };
 
@@ -101,7 +101,7 @@ export default function App() {
     if(!session) return;
 
     navigator.clipboard.writeText(session.roomToken);
-    toast.success("Token copied to clipboard");
+    success("Token copied to clipboard");
   };
 
   if (!session) {
@@ -111,7 +111,6 @@ export default function App() {
           <CuteBackground />
         </div>
         <CreateJoinModal open={true} onJoin={handleJoin} />
-        <Toaster />
       </>
     );
   }
@@ -244,8 +243,6 @@ export default function App() {
 
       {/* Mobile Bottom Navigation - Outside container so it's positioned correctly */}
       <MobileNav activeTab={mobileTab} onTabChange={setMobileTab} />
-
-      <Toaster />
     </div>
   );
 }

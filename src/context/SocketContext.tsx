@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { io, Socket } from 'socket.io-client';
 import { Message, toUIMessage, UIMessage } from '@/types/chat';
 import { Sticker } from '@/types/sticker';
-import { toast } from 'sonner';
+import { useEventNotifications } from '@/components/chat/useEventNotifications';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -40,6 +40,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [roomToken, setRoomToken] = useState('');
   const [sessionToken, setSessionToken] = useState('');
   const [isReconnecting, setIsReconnecting] = useState(false);
+  
+  const { success, info, warning, error } = useEventNotifications();
   
   // Use ref to store session data for socket event handlers
   const sessionRef = useRef<{ roomToken: string; sessionToken: string }>({
@@ -99,10 +101,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return currentNickname;
       });
       
-      // Only show toast on initial join, not on reconnect
+      // Only show notification on initial join, not on reconnect
       setIsReconnecting((reconnecting) => {
         if (!reconnecting) {
-          toast.success('Joined room successfully!');
+          success('Joined room successfully!');
         }
         return false; // Reset reconnecting flag
       });
@@ -137,7 +139,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return [...prev, systemMessage];
       });
       
-      toast.info(`${data.nickname} joined the room`);
+      info(`${data.nickname} joined the room`);
     });
 
     // Backend event: user_left
@@ -169,7 +171,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return [...prev, systemMessage];
       });
       
-      toast.info(`${data.nickname} left the room`);
+      info(`${data.nickname} left the room`);
     });
 
     // Backend event: new_message
@@ -194,26 +196,26 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     newSocket.on('message_deleted', (data: { messageId: string }) => {
       console.log('Message deleted:', data);
       setMessages((prev) => prev.filter(m => m.id !== data.messageId));
-      toast.info('Message deleted');
+      info('Message deleted');
     });
 
     // Backend event: room_ttl_warning
     newSocket.on('room_ttl_warning', (data: { expiresIn: number }) => {
       const minutes = Math.floor(data.expiresIn / 60);
-      toast.warning(`Room expires in ${minutes} minutes!`);
+      warning(`Room expires in ${minutes} minutes!`);
     });
 
     // Backend event: room_closed
     newSocket.on('room_closed', (data: { reason: string }) => {
-      toast.error(`Room closed: ${data.reason}`);
+      error(`Room closed: ${data.reason}`);
       setMessages([]);
       setParticipantCount(0);
     });
 
     // Backend event: error
-    newSocket.on('error', (error: { message: string; code?: string }) => {
-      console.error('Socket error:', error);
-      toast.error(error.message || 'An error occurred');
+    newSocket.on('error', (errorData: { message: string; code?: string }) => {
+      console.error('Socket error:', errorData);
+      error(errorData.message || 'An error occurred');
     });
 
     setSocket(newSocket);
@@ -255,7 +257,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const sendMessage = useCallback((content: string) => {
     if (!socket || !connected) {
-      toast.error('Not connected to server');
+      error('Not connected to server');
       return;
     }
 
@@ -267,7 +269,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const sendSticker = useCallback((sticker: Sticker) => {
     if (!socket || !connected) {
-      toast.error('Not connected to server');
+      error('Not connected to server');
       return;
     }
 
@@ -282,7 +284,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     caption?: string
   ) => {
     if (!socket || !connected) {
-      toast.error('Not connected to server');
+      error('Not connected to server');
       return;
     }
 
@@ -298,7 +300,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     description?: string
   ) => {
     if (!socket || !connected) {
-      toast.error('Not connected to server');
+      error('Not connected to server');
       return;
     }
 
@@ -311,7 +313,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteMessage = useCallback((messageId: string) => {
     if (!socket || !connected) {
-      toast.error('Not connected to server');
+      error('Not connected to server');
       return;
     }
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
 import { SocketProvider } from "@/context/SocketContext";
+import { EventNotifications } from "@/components/chat/EventNotifications";
 
 export const metadata: Metadata = {
   title: "GhostRooms",
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body>
         <SocketProvider>
           {children}
+          <EventNotifications />
         </SocketProvider>
       </body>
     </html>

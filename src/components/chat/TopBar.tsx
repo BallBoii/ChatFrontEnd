@@ -1,7 +1,7 @@
 import { GhostLogo } from "./GhostLogo";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Copy, Sun, Moon } from "lucide-react";
-import { toast } from "sonner";
+import { useEventNotifications } from "./useEventNotifications";
 
 interface TopBarProps {
   token: string;
@@ -11,9 +11,11 @@ interface TopBarProps {
 }
 
 export function TopBar({ token, timeLeft, darkMode, setDarkMode }: TopBarProps) {
+  const { success } = useEventNotifications();
+  
   const handleCopyToken = () => {
     navigator.clipboard.writeText(token);
-    toast.success("Token copied to clipboard");
+    success("Token copied to clipboard");
   };
 
   const handleToggleDarkMode = () => {

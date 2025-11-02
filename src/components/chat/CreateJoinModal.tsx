@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GhostLogo } from "./GhostLogo";
 import { Copy, Check, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { useEventNotifications } from "./useEventNotifications";
 import { roomService } from "@/lib/services/roomService";
 import type { Session } from "@/types/chat";
 
@@ -21,10 +21,12 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
   const [createdToken, setCreatedToken] = useState("");
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const { success, error } = useEventNotifications();
 
   const handleCreate = async () => {
     if (!nickname.trim()) {
-      toast.error("Please enter a nickname");
+      error("Please enter a nickname");
       return;
     }
 
@@ -33,10 +35,10 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
       // Create room on backend
       const room = await roomService.createRoom(24); // 24 hours TTL
       setCreatedToken(room.token);
-      toast.success("Room created successfully!");
-    } catch (error) {
-      console.error('Failed to create room:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to create room");
+      success("Room created successfully!");
+    } catch (err) {
+      console.error('Failed to create room:', err);
+      error(err instanceof Error ? err.message : "Failed to create room");
     } finally {
       setLoading(false);
     }
@@ -44,11 +46,11 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
 
   const handleJoin = async () => {
     if (!nickname.trim()) {
-      toast.error("Please enter a nickname");
+      error("Please enter a nickname");
       return;
     }
     if (!token.trim()) {
-      toast.error("Please enter a room token");
+      error("Please enter a room token");
       return;
     }
 
@@ -57,17 +59,17 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
       // Validate room first
       const isValid = await roomService.validateRoom(token);
       if (!isValid) {
-        toast.error("Invalid or expired room token");
+        error("Invalid or expired room token");
         return;
       }
 
       // Join the room
       const session = await roomService.joinRoom(token, nickname);
-      toast.success("Joined room successfully!");
+      success("Joined room successfully!");
       onJoin(session);
-    } catch (error) {
-      console.error('Failed to join room:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to join room");
+    } catch (err) {
+      console.error('Failed to join room:', err);
+      error(err instanceof Error ? err.message : "Failed to join room");
     } finally {
       setLoading(false);
     }
@@ -80,11 +82,11 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
     try {
       // Join the room we just created
       const session = await roomService.joinRoom(createdToken, nickname);
-      toast.success("Entered room successfully!");
+      success("Entered room successfully!");
       onJoin(session);
-    } catch (error) {
-      console.error('Failed to enter room:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to enter room");
+    } catch (err) {
+      console.error('Failed to enter room:', err);
+      error(err instanceof Error ? err.message : "Failed to enter room");
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
   const handleCopy = () => {
     navigator.clipboard.writeText(createdToken);
     setCopied(true);
-    toast.success("Token copied to clipboard");
+    success("Token copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
 
