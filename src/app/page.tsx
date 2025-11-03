@@ -26,7 +26,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
-  const { messages, joinRoom, sendMessage, sendSticker, leaveRoom, participantCount, nickname } = useSocket();
+  const { messages, joinRoom, sendMessage, sendImage, sendFile, sendSticker, leaveRoom, participantCount, uploading } = useSocket();
   const { success, error } = useEventNotifications();
 
   useEffect(() => {
@@ -90,6 +90,14 @@ export default function App() {
     sendSticker(sticker);
   };
 
+  const handleSendFile = async (files: File[], type: 'IMAGE' | 'FILE', caption?: string) => {
+    if (type === 'IMAGE') {
+      await sendImage(files, caption);
+    } else {
+      await sendFile(files, caption);
+    }
+  };
+
   const handleLogout = () => {
     leaveRoom();
     setSession(null);
@@ -132,6 +140,8 @@ export default function App() {
               <MessageComposer 
                 onSend={handleSendMessage} 
                 onStickerSend={handleSendSticker}
+                onFileSend={handleSendFile}
+                // disabled={uploading}
               />
             </div>
           </div>
@@ -151,6 +161,8 @@ export default function App() {
                 <MessageComposer 
                   onSend={handleSendMessage} 
                   onStickerSend={handleSendSticker}  
+                  onFileSend={handleSendFile}
+                  // disabled={uploading}
                 />
               </div>
 

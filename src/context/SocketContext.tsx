@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Message, toUIMessage, UIMessage } from '@/types/chat';
+import { Message, toUIMessage, UIMessage, Attachment } from '@/types/chat';
 import { Sticker } from '@/types/sticker';
 import { useEventNotifications } from '@/components/chat/useEventNotifications';
 
@@ -13,12 +13,13 @@ interface SocketContextType {
   joinRoom: (roomToken: string, sessionToken: string, nickname: string) => void;
   sendMessage: (content: string) => void;
   sendSticker: (sticker: Sticker) => void;
-  sendImage: (attachments: Array<{ fileName: string; fileSize: number; mimeType: string; url: string }>, caption?: string) => void;
-  sendFile: (attachments: Array<{ fileName: string; fileSize: number; mimeType: string; url: string }>, description?: string) => void;
+  sendImage: (files: File[], caption?: string) => Promise<void>;
+  sendFile: (files: File[], description?: string) => Promise<void>;
   deleteMessage: (messageId: string) => void;
   leaveRoom: () => void;
   participantCount: number;
   nickname: string;
+  uploading: boolean;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -40,6 +41,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [roomToken, setRoomToken] = useState('');
   const [sessionToken, setSessionToken] = useState('');
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   
   const { success, info, warning, error } = useEventNotifications();
   
@@ -53,6 +55,45 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     sessionRef.current = { roomToken, sessionToken };
   }, [roomToken, sessionToken]);
+
+  // Helper function to upload files to backend
+  const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+    
+    try {
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        // Remove messageId for now - backend will handle it
+        formData.append('messageId', 'temp-id'); 
+        
+        console.log('Uploading file:', file.name, file.size, file.type);
+        
+        const response = await fetch(`${baseUrl}/api/files/upload`, {
+          method: 'POST',
+          body: formData,
+          // Don't set Content-Type header - let browser set it with boundary
+        });
+        
+        console.log('Upload response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Upload error response:', errorText);
+          throw new Error(`Upload failed for ${file.name}: ${response.status} ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('Upload result:', result);
+        return result.attachment as Attachment;
+      });
+      
+      return await Promise.all(uploadPromises);
+    } catch (err) {
+      console.error('File upload error:', err);
+      throw err; // Re-throw to see the actual error
+    }
+  };
 
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
@@ -279,37 +320,67 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, [socket, connected]);
 
-  const sendImage = useCallback((
-    attachments: Array<{ fileName: string; fileSize: number; mimeType: string; url: string }>,
-    caption?: string
-  ) => {
+  const sendImage = useCallback(async (files: File[], caption?: string) => {
     if (!socket || !connected) {
       error('Not connected to server');
       return;
     }
 
-    socket.emit('send_message', {
-      type: 'IMAGE',
-      content: caption || null,
-      attachments,
-    });
-  }, [socket, connected]);
+    setUploading(true);
+    try {
+      const attachments = await uploadFiles(files);
+      
+      socket.emit('send_message', {
+        type: 'IMAGE',
+        content: caption || null,
+        attachments: attachments.map(att => ({
+          fileName: att.fileName,
+          fileSize: att.fileSize,
+          mimeType: att.mimeType,
+          url: att.url
+        })),
+      });
+      
+      success(`Sent ${files.length} image(s)`);
+    } catch (err) {
+      console.error('Image send error:', err);
+      error('Failed to send images');
+    } finally {
+      setUploading(false);
+    }
+  }, [socket, connected, error, success]);
 
-  const sendFile = useCallback((
-    attachments: Array<{ fileName: string; fileSize: number; mimeType: string; url: string }>,
-    description?: string
-  ) => {
+  const sendFile = useCallback(async (files: File[], description?: string) => {
     if (!socket || !connected) {
       error('Not connected to server');
       return;
     }
 
-    socket.emit('send_message', {
-      type: 'FILE',
-      content: description || null,
-      attachments,
-    });
-  }, [socket, connected]);
+    setUploading(true);
+    try {
+      // Upload files first
+      const attachments = await uploadFiles(files);
+      
+      // Then send message with attachments
+      socket.emit('send_message', {
+        type: 'FILE',
+        content: description || null,
+        attachments: attachments.map(att => ({
+          fileName: att.fileName,
+          fileSize: att.fileSize,
+          mimeType: att.mimeType,
+          url: att.url
+        })),
+      });
+      
+      success(`Sent ${files.length} file(s)`);
+    } catch (err) {
+      console.error('File send error:', err);
+      error('Failed to send files');
+    } finally {
+      setUploading(false);
+    }
+  }, [socket, connected, error, success]);
 
   const deleteMessage = useCallback((messageId: string) => {
     if (!socket || !connected) {
@@ -347,6 +418,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         leaveRoom,
         participantCount,
         nickname,
+        uploading
       }}
     >
       {children}
