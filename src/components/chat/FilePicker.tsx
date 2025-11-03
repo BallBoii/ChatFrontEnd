@@ -164,22 +164,22 @@ export function FilePicker({ onFileSelect, isOpen, onClose }: FilePickerProps) {
 
         {/* Category Tabs */}
         <div className="p-4 pb-2">
-          <ScrollArea className="w-full">
-            <div className="flex space-x-2 pb-2">
+          <div className="overflow-x-auto">
+            <div className="flex space-x-2 pb-2 min-w-max">
               {FILE_CATEGORIES.map((category) => (
                 <Button
                   key={category.id}
                   variant={activeCategory === category.id ? "default" : "outline"}
                   size="sm"
                   onClick={() => setActiveCategory(category.id)}
-                  className="whitespace-nowrap text-xs flex items-center gap-1"
+                  className="whitespace-nowrap text-xs flex items-center gap-1 flex-shrink-0"
                 >
                   {category.icon}
                   {category.name}
                 </Button>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         </div>
 
         {/* File Upload Area */}

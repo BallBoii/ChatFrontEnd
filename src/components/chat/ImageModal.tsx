@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Download, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -68,6 +68,24 @@ export function ImageModal({ isOpen, onClose, imageUrl, fileName, alt }: ImageMo
       onClose();
     }
   };
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
 
   return (
     <div 
