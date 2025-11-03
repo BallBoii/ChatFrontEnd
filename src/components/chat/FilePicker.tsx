@@ -23,6 +23,14 @@ interface FileCategory {
 
 const FILE_CATEGORIES: FileCategory[] = [
   {
+    id: 'all',
+    name: 'All Files',
+    icon: <File className="h-4 w-4" />,
+    accept: '*/*',
+    maxSize: 50,
+    description: 'Any file up to 50MB'
+  },
+  {
     id: 'images',
     name: 'Images',
     icon: <Image className="h-4 w-4" />,
@@ -39,41 +47,17 @@ const FILE_CATEGORIES: FileCategory[] = [
     description: 'PDF, DOC, TXT up to 25MB'
   },
   {
-    id: 'videos',
-    name: 'Videos',
-    icon: <Video className="h-4 w-4" />,
-    accept: 'video/*',
-    maxSize: 100,
-    description: 'MP4, AVI, MOV up to 100MB'
-  },
-  {
-    id: 'audio',
-    name: 'Audio',
-    icon: <Music className="h-4 w-4" />,
-    accept: 'audio/*',
-    maxSize: 50,
-    description: 'MP3, WAV, OGG up to 50MB'
-  },
-  {
     id: 'archives',
     name: 'Archives',
     icon: <Archive className="h-4 w-4" />,
     accept: '.zip,.rar,.7z,.tar,.gz',
     maxSize: 50,
     description: 'ZIP, RAR, 7Z up to 50MB'
-  },
-  {
-    id: 'all',
-    name: 'All Files',
-    icon: <File className="h-4 w-4" />,
-    accept: '*/*',
-    maxSize: 100,
-    description: 'Any file up to 100MB'
   }
 ];
 
 export function FilePicker({ onFileSelect, isOpen, onClose }: FilePickerProps) {
-  const [activeCategory, setActiveCategory] = useState<string>('images');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [caption, setCaption] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -238,7 +222,7 @@ export function FilePicker({ onFileSelect, isOpen, onClose }: FilePickerProps) {
           />
 
           {/* Caption/Description Input */}
-          {selectedFiles.length > 0 && (
+          {/* {selectedFiles.length > 0 && (
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 {activeCategory === 'images' ? 'Caption' : 'Description'} (optional)
@@ -252,40 +236,42 @@ export function FilePicker({ onFileSelect, isOpen, onClose }: FilePickerProps) {
                 maxLength={500}
               />
             </div>
-          )}
+          )} */}
 
           {/* Selected Files */}
           {selectedFiles.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Selected Files ({selectedFiles.length})</h4>
-              <ScrollArea className="max-h-40">
-                <div className="space-y-2">
-                  {selectedFiles.map((file, index) => (
-                    <div
-                      key={`${file.name}-${index}`}
-                      className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-2 min-w-0 flex-1">
-                        {getFileIcon(file)}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{file.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatFileSize(file.size)}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeFile(index)}
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+              <div className="max-h-40 overflow-y-auto rounded-lg">
+                <ScrollArea className="h-full overflow-y-auto">
+                  <div className="space-y-2">
+                    {selectedFiles.map((file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
                       >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                        <div className="flex items-center space-x-2 min-w-0 flex-1">
+                          {getFileIcon(file)}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(file.size)}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeFile(index)}
+                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
           )}
         </div>

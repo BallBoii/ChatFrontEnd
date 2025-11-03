@@ -56,45 +56,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     sessionRef.current = { roomToken, sessionToken };
   }, [roomToken, sessionToken]);
 
-  // Helper function to upload files to backend
-  const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-    
-    try {
-      const uploadPromises = files.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        // Remove messageId for now - backend will handle it
-        formData.append('messageId', 'temp-id'); 
-        
-        console.log('Uploading file:', file.name, file.size, file.type);
-        
-        const response = await fetch(`${baseUrl}/api/files/upload`, {
-          method: 'POST',
-          body: formData,
-          // Don't set Content-Type header - let browser set it with boundary
-        });
-        
-        console.log('Upload response status:', response.status);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Upload error response:', errorText);
-          throw new Error(`Upload failed for ${file.name}: ${response.status} ${errorText}`);
-        }
-        
-        const result = await response.json();
-        console.log('Upload result:', result);
-        return result.attachment as Attachment;
-      });
-      
-      return await Promise.all(uploadPromises);
-    } catch (err) {
-      console.error('File upload error:', err);
-      throw err; // Re-throw to see the actual error
-    }
-  };
-
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     const newSocket = io(socketUrl, {
@@ -319,7 +280,42 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       content: sticker.id,
     });
   }, [socket, connected]);
-
+  
+  const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+    
+    try {
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        console.log('Uploading file:', file.name, file.size, file.type);
+        
+        const response = await fetch(`${baseUrl}/api/files/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        
+        console.log('Upload response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Upload error response:', errorText);
+          throw new Error(`Upload failed for ${file.name}: ${response.status} ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('Upload result:', result);
+        return result.attachment as Attachment;
+      });
+      
+      return await Promise.all(uploadPromises);
+    } catch (err) {
+      console.error('File upload error:', err);
+      throw err;
+    }
+  };
+  
   const sendImage = useCallback(async (files: File[], caption?: string) => {
     if (!socket || !connected) {
       error('Not connected to server');
@@ -328,17 +324,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setUploading(true);
     try {
+      // Upload files to backend first
       const attachments = await uploadFiles(files);
       
+      // Send message with attachment data via WebSocket
       socket.emit('send_message', {
         type: 'IMAGE',
         content: caption || null,
-        attachments: attachments.map(att => ({
-          fileName: att.fileName,
-          fileSize: att.fileSize,
-          mimeType: att.mimeType,
-          url: att.url
-        })),
+        attachments: attachments, // Send attachment data, not file data
       });
       
       success(`Sent ${files.length} image(s)`);
@@ -349,6 +342,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUploading(false);
     }
   }, [socket, connected, error, success]);
+
 
   const sendFile = useCallback(async (files: File[], description?: string) => {
     if (!socket || !connected) {
@@ -361,16 +355,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Upload files first
       const attachments = await uploadFiles(files);
       
-      // Then send message with attachments
+      // Then send message with attachments via WebSocket
       socket.emit('send_message', {
         type: 'FILE',
         content: description || null,
-        attachments: attachments.map(att => ({
-          fileName: att.fileName,
-          fileSize: att.fileSize,
-          mimeType: att.mimeType,
-          url: att.url
-        })),
+        attachments: attachments, // Send the full attachment objects, same as sendImage
       });
       
       success(`Sent ${files.length} file(s)`);

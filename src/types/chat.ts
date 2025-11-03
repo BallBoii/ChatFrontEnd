@@ -72,6 +72,7 @@ export type StickerMessage = MessageBase & {
 
 // IMAGE / FILE
 export interface Attachment {
+  id: string;
   fileName: string;
   fileSize: number;
   mimeType: string;
