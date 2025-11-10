@@ -65,7 +65,7 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
 
       // Join the room
       const session = await roomService.joinRoom(token, nickname);
-      success("Joined room successfully!");
+      // Note: Success notification will be shown by SocketContext when room_joined event is received
       onJoin(session);
     } catch (err) {
       console.error('Failed to join room:', err);
@@ -82,7 +82,7 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
     try {
       // Join the room we just created
       const session = await roomService.joinRoom(createdToken, nickname);
-      success("Entered room successfully!");
+      // Note: Success notification will be shown by SocketContext when room_joined event is received
       onJoin(session);
     } catch (err) {
       console.error('Failed to enter room:', err);

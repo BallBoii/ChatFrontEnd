@@ -26,7 +26,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
-  const { messages, joinRoom, sendMessage, sendImage, sendFile, sendSticker, leaveRoom, participantCount, uploading } = useSocket();
+  const { messages, joinRoom, sendMessage, sendImage, sendFile, sendSticker, leaveRoom, participantCount, participants, uploading } = useSocket();
   const { success, error } = useEventNotifications();
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function App() {
           <TopBar token={session.roomToken} timeLeft={timeLeft} darkMode={darkMode} setDarkMode={setDarkMode} />
           
           <div className="flex-1 flex overflow-hidden">
-            <MembersPanel participantCount={participantCount} currentNickname={session.nickname} />
+            <MembersPanel participantCount={participantCount} participants={participants} currentNickname={session.nickname} />
             
             <div className="flex-1 flex flex-col">
               <MessageList messages={messages} />
@@ -174,25 +174,47 @@ export default function App() {
                 <span className="text-sm text-muted-foreground">Members ({participantCount})</span>
               </div>
               <div className="flex-1 overflow-auto p-3 space-y-1">
-                {/* Current user */}
-                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/50">
-                  <div className="relative">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                      <span className="text-sm">{session.nickname.charAt(0).toUpperCase()}</span>
+                {/* Show all participants */}
+                {participants.map((participant, index) => {
+                  const isCurrentUser = participant === session.nickname;
+                  return (
+                    <div 
+                      key={`${participant}-${index}`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${
+                        isCurrentUser ? 'bg-muted/50' : 'hover:bg-muted/30'
+                      }`}
+                    >
+                      <div className="relative">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          isCurrentUser 
+                            ? 'bg-gradient-to-br from-primary/20 to-secondary/20'
+                            : 'bg-gradient-to-br from-muted to-muted-foreground/10'
+                        }`}>
+                          <span className="text-sm font-medium">
+                            {participant.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        {/* Online indicator */}
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-card"></div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm truncate font-medium">
+                            {participant}
+                          </p>
+                          {isCurrentUser && (
+                            <span className="text-xs text-muted-foreground">(you)</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm truncate">{session.nickname}</p>
-                      <span className="text-xs text-muted-foreground">(you)</span>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })}
 
-                {/* Other participants */}
-                {participantCount > 1 && (
+                {/* Fallback if participants list is empty but count > 0 */}
+                {participants.length === 0 && participantCount > 0 && (
                   <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-                    + {participantCount - 1} other {participantCount === 2 ? 'ghost' : 'ghosts'}
+                    {participantCount} {participantCount === 1 ? 'ghost' : 'ghosts'} in room
                   </div>
                 )}
               </div>

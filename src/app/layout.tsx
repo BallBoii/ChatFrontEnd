@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@/styles/globals.css";
 import { SocketProvider } from "@/context/SocketContext";
 import { EventNotifications } from "@/components/chat/EventNotifications";
@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     apple: '/icon-192.svg',
   },
   manifest: '/site.webmanifest',
+};
+
+export const viewport: Viewport = {
   themeColor: '#6366f1',
 };
 

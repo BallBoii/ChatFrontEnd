@@ -18,6 +18,7 @@ interface SocketContextType {
   deleteMessage: (messageId: string) => void;
   leaveRoom: () => void;
   participantCount: number;
+  participants: string[]; // List of all nicknames in the room
   nickname: string;
   uploading: boolean;
 }
@@ -37,13 +38,18 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [participantCount, setParticipantCount] = useState(0);
+  const [participants, setParticipants] = useState<string[]>([]); // Track all participants
   const [nickname, setNickname] = useState('');
   const [roomToken, setRoomToken] = useState('');
   const [sessionToken, setSessionToken] = useState('');
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [uploading, setUploading] = useState(false);
   
-  const { success, info, warning, error } = useEventNotifications();
+  // Get notification functions
+  const notifications = useEventNotifications();
+  
+  // Use ref to track if we should show join notification
+  const shouldShowJoinNotification = useRef(true);
   
   // Use ref to store session data for socket event handlers
   const sessionRef = useRef<{ roomToken: string; sessionToken: string }>({
@@ -78,10 +84,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     newSocket.on('room_joined', (data: { 
       roomToken: string; 
       participantCount: number;
+      participants: string[]; // All nicknames in the room
       messages: Message[]; // Last 50 messages
     }) => {
       console.log('Room joined:', data);
       setParticipantCount(data.participantCount);
+      setParticipants(data.participants || []); // Update participants list
       
       // Load message history
       setNickname((currentNickname) => {
@@ -104,18 +112,21 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
       
       // Only show notification on initial join, not on reconnect
-      setIsReconnecting((reconnecting) => {
-        if (!reconnecting) {
-          success('Joined room successfully!');
-        }
-        return false; // Reset reconnecting flag
-      });
+      if (shouldShowJoinNotification.current && !isReconnecting) {
+        // Use setTimeout to defer notification to after render
+        setTimeout(() => {
+          notifications.success('Joined room successfully!');
+        }, 0);
+        shouldShowJoinNotification.current = false; // Reset flag after showing notification
+      }
+      setIsReconnecting(false);
     });
 
     // Backend event: user_joined
-    newSocket.on('user_joined', (data: { nickname: string; participantCount: number }) => {
+    newSocket.on('user_joined', (data: { nickname: string; participantCount: number; participants: string[] }) => {
       console.log('User joined:', data);
       setParticipantCount(data.participantCount);
+      setParticipants(data.participants || []); // Update participants list
       
       // Add system message
       const systemMessage: UIMessage = {
@@ -132,22 +143,30 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Check if we already have a recent join message for this user (within last 5 seconds)
       setMessages((prev) => {
         const fiveSecondsAgo = Date.now() - 5000;
-        prev.some(m => 
+        const isDuplicate = prev.some(m => 
           m.isSystem && 
           m.content === systemMessage.content &&
           new Date(m.createdAt).getTime() > fiveSecondsAgo
         );
         
+        // Only add if not a duplicate
+        if (isDuplicate) {
+          return prev;
+        }
         return [...prev, systemMessage];
       });
       
-      info(`${data.nickname} joined the room`);
+      // Use setTimeout to defer notification to after render
+      setTimeout(() => {
+        notifications.info(`${data.nickname} joined the room`);
+      }, 0);
     });
 
     // Backend event: user_left
-    newSocket.on('user_left', (data: { nickname: string; participantCount: number }) => {
+    newSocket.on('user_left', (data: { nickname: string; participantCount: number; participants: string[] }) => {
       console.log('User left:', data);
       setParticipantCount(data.participantCount);
+      setParticipants(data.participants || []); // Update participants list
       
       // Add system message
       const systemMessage: UIMessage = {
@@ -164,16 +183,23 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Check if we already have a recent leave message for this user (within last 5 seconds)
       setMessages((prev) => {
         const fiveSecondsAgo = Date.now() - 5000;
-        prev.some(m => 
+        const isDuplicate = prev.some(m => 
           m.isSystem && 
           m.content === systemMessage.content &&
           new Date(m.createdAt).getTime() > fiveSecondsAgo
         );
         
+        // Only add if not a duplicate
+        if (isDuplicate) {
+          return prev;
+        }
         return [...prev, systemMessage];
       });
       
-      info(`${data.nickname} left the room`);
+      // Use setTimeout to defer notification to after render
+      setTimeout(() => {
+        notifications.info(`${data.nickname} left the room`);
+      }, 0);
     });
 
     // Backend event: new_message
@@ -198,26 +224,39 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     newSocket.on('message_deleted', (data: { messageId: string }) => {
       console.log('Message deleted:', data);
       setMessages((prev) => prev.filter(m => m.id !== data.messageId));
-      info('Message deleted');
+      // Use setTimeout to defer notification to after render
+      setTimeout(() => {
+        notifications.info('Message deleted');
+      }, 0);
     });
 
     // Backend event: room_ttl_warning
     newSocket.on('room_ttl_warning', (data: { expiresIn: number }) => {
       const minutes = Math.floor(data.expiresIn / 60);
-      warning(`Room expires in ${minutes} minutes!`);
+      // Use setTimeout to defer notification to after render
+      setTimeout(() => {
+        notifications.warning(`Room expires in ${minutes} minutes!`);
+      }, 0);
     });
 
     // Backend event: room_closed
     newSocket.on('room_closed', (data: { reason: string }) => {
-      error(`Room closed: ${data.reason}`);
+      // Use setTimeout to defer notification to after render
+      setTimeout(() => {
+        notifications.error(`Room closed: ${data.reason}`);
+      }, 0);
       setMessages([]);
       setParticipantCount(0);
+      setParticipants([]); // Clear participants list
     });
 
     // Backend event: error
     newSocket.on('error', (errorData: { message: string; code?: string }) => {
       console.error('Socket error:', errorData);
-      error(errorData.message || 'An error occurred');
+      // Use setTimeout to defer notification to after render
+      setTimeout(() => {
+        notifications.error(errorData.message || 'An error occurred');
+      }, 0);
     });
 
     setSocket(newSocket);
@@ -245,6 +284,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setSessionToken(sessionTkn);
     setNickname(nick);
     setIsReconnecting(false);
+    shouldShowJoinNotification.current = true;
 
     const doJoin = () => socket.emit('join_room', { roomToken: roomTkn, sessionToken: sessionTkn });
 
@@ -259,7 +299,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const sendMessage = useCallback((content: string) => {
     if (!socket || !connected) {
-      error('Not connected to server');
+      notifications.error('Not connected to server');
       return;
     }
 
@@ -267,11 +307,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       type: 'TEXT',
       content,
     });
-  }, [socket, connected]);
+  }, [socket, connected, notifications]);
 
   const sendSticker = useCallback((sticker: Sticker) => {
     if (!socket || !connected) {
-      error('Not connected to server');
+      notifications.error('Not connected to server');
       return;
     }
 
@@ -279,7 +319,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       type: 'STICKER',
       content: sticker.id,
     });
-  }, [socket, connected]);
+  }, [socket, connected, notifications]);
   
   const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
@@ -318,7 +358,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   
   const sendImage = useCallback(async (files: File[], caption?: string) => {
     if (!socket || !connected) {
-      error('Not connected to server');
+      notifications.error('Not connected to server');
       return;
     }
 
@@ -334,19 +374,19 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         attachments: attachments, // Send attachment data, not file data
       });
       
-      success(`Sent ${files.length} image(s)`);
+      notifications.success(`Sent ${files.length} image(s)`);
     } catch (err) {
       console.error('Image send error:', err);
-      error('Failed to send images');
+      notifications.error('Failed to send images');
     } finally {
       setUploading(false);
     }
-  }, [socket, connected, error, success]);
+  }, [socket, connected, notifications]);
 
 
   const sendFile = useCallback(async (files: File[], description?: string) => {
     if (!socket || !connected) {
-      error('Not connected to server');
+      notifications.error('Not connected to server');
       return;
     }
 
@@ -362,23 +402,23 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         attachments: attachments, // Send the full attachment objects, same as sendImage
       });
       
-      success(`Sent ${files.length} file(s)`);
+      notifications.success(`Sent ${files.length} file(s)`);
     } catch (err) {
       console.error('File send error:', err);
-      error('Failed to send files');
+      notifications.error('Failed to send files');
     } finally {
       setUploading(false);
     }
-  }, [socket, connected, error, success]);
+  }, [socket, connected, notifications]);
 
   const deleteMessage = useCallback((messageId: string) => {
     if (!socket || !connected) {
-      error('Not connected to server');
+      notifications.error('Not connected to server');
       return;
     }
 
     socket.emit('delete_message', { messageId });
-  }, [socket, connected]);
+  }, [socket, connected, notifications]);
 
   const leaveRoom = useCallback(() => {
     if (!socket) return;
@@ -387,6 +427,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     socket.disconnect();
     setMessages([]);
     setParticipantCount(0);
+    setParticipants([]); // Clear participants list
     setRoomToken('');
     setSessionToken('');
     setNickname('');
@@ -406,6 +447,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteMessage,
         leaveRoom,
         participantCount,
+        participants, // Add participants to context
         nickname,
         uploading
       }}
