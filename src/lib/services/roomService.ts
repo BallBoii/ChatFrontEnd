@@ -5,8 +5,8 @@ export const roomService = {
   /**
    * Create a new ghost room
    */
-  async createRoom(ttlHours: number = 24) {
-    return await ghostAPI.createRoom(ttlHours);
+  async createRoom(ttlHours: number = 24, name?: string, isPublic: boolean = false) {
+    return await ghostAPI.createRoom(ttlHours, name, isPublic);
   },
 
   /**
@@ -35,5 +35,12 @@ export const roomService = {
    */
   async getMessages(roomToken: string, sessionToken: string, limit: number = 50) {
     return await ghostAPI.getMessages(roomToken, sessionToken, { limit });
+  },
+
+  /**
+   * Get all public rooms
+   */
+  async getPublicRooms() {
+    return await ghostAPI.getPublicRooms();
   },
 };

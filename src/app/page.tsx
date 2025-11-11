@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useEventNotifications } from "@/components/chat/useEventNotifications";
 import { useSocket } from "@/context/SocketContext";
 import { roomService } from "@/lib/services/roomService";
+import { preloadStickerMap } from "@/lib/utils/stickerMap";
 import type { Sticker } from "@/types/sticker";
 import type { Session } from "@/types/chat";
 
@@ -28,6 +29,13 @@ export default function App() {
 
   const { messages, joinRoom, sendMessage, sendImage, sendFile, sendSticker, leaveRoom, participantCount, participants, uploading } = useSocket();
   const { success, error } = useEventNotifications();
+
+  // Preload sticker map on app mount
+  useEffect(() => {
+    preloadStickerMap().catch(err => {
+      console.error('Failed to preload sticker map:', err);
+    });
+  }, []);
 
   useEffect(() => {
     if (darkMode) {
@@ -130,7 +138,7 @@ export default function App() {
       {/* Desktop & Tablet: Floating Window */}
       <div className="hidden md:flex w-full h-full items-center justify-center relative z-10">
         <ChatWindow>
-          <TopBar token={session.roomToken} timeLeft={timeLeft} darkMode={darkMode} setDarkMode={setDarkMode} />
+          <TopBar token={session.roomToken} timeLeft={timeLeft} darkMode={darkMode} setDarkMode={setDarkMode} onLeave={handleLogout} />
           
           <div className="flex-1 flex overflow-hidden">
             <MembersPanel participantCount={participantCount} participants={participants} currentNickname={session.nickname} />
@@ -152,7 +160,7 @@ export default function App() {
       <div className="md:hidden flex flex-col fixed inset-0 z-10 pb-20">
         <div className="w-full h-full p-5 sm:p-6 flex items-center justify-center">
           <div className="flex flex-col w-full h-full rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border border-border/50 backdrop-blur-sm bg-card/95">
-            <TopBar token={session.roomToken} timeLeft={timeLeft} darkMode={darkMode} setDarkMode={setDarkMode} />
+            <TopBar token={session.roomToken} timeLeft={timeLeft} darkMode={darkMode} setDarkMode={setDarkMode} onLeave={handleLogout} />
 
             <div className="flex-1 flex overflow-hidden pb-5">
               {/* Main Chat Area */}
@@ -246,13 +254,13 @@ export default function App() {
                   <div className="pt-4 border-t border-border">
                     <div className="space-y-2">
                       <Label>Current Session</Label>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground break-words">
                         Logged in as <span className="text-foreground">{session.nickname}</span>
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        Room: <code className="text-foreground cursor-pointer inline-flex items-center gap-1 group hover:text-muted-foreground transition-colors" onClick={handleCopyToken}>
-                                {session.roomToken}
-                                <Copy className="h-3 w-3" />
+                      <p className="text-sm text-muted-foreground break-words">
+                        Room: <code className="text-foreground cursor-pointer inline-flex items-center gap-1 group hover:text-muted-foreground transition-colors break-all" onClick={handleCopyToken}>
+                                <span className="break-all">{session.roomToken}</span>
+                                <Copy className="h-3 w-3 flex-shrink-0" />
                               </code>
                       </p>
                     </div>

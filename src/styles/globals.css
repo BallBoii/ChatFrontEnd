@@ -73,6 +73,17 @@
   }
 }
 
+@layer utilities {
+  .overflow-wrap-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .word-break-all {
+    word-break: break-all;
+  }
+}
+
 html {
   font-size: 16px;
 }

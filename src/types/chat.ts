@@ -7,6 +7,8 @@ export interface Ghost {
 // Room info from backend
 export interface Room {
   token: string;
+  name?: string;
+  isPublic?: boolean;
   expiresAt: string;
   participantCount: number;
   createdAt: string;

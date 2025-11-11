@@ -69,11 +69,11 @@ export function EventCard({ id, type, title, message, onClose }: EventCardProps)
         
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="text-gray-700 font-medium mb-1 text-sm">
+          <div className="text-gray-700 font-medium mb-1 text-sm break-words">
             {title}
           </div>
           {message && (
-            <div className="text-gray-500 text-xs">
+            <div className="text-gray-500 text-xs break-words">
               {message}
             </div>
           )}
