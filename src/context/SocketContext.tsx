@@ -193,13 +193,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (isDuplicate) {
           return prev;
         }
+        
+        // Show notification only when adding the system message
+        setTimeout(() => {
+          notifications.info(`${data.nickname} left the room`);
+        }, 0);
+        
         return [...prev, systemMessage];
       });
-      
-      // Use setTimeout to defer notification to after render
-      setTimeout(() => {
-        notifications.info(`${data.nickname} left the room`);
-      }, 0);
     });
 
     // Backend event: new_message

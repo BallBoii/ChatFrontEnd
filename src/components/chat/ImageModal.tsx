@@ -89,17 +89,18 @@ export function ImageModal({ isOpen, onClose, imageUrl, fileName, alt }: ImageMo
 
   return (
     <div 
-      className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
       onClick={handleBackdropClick}
     >
       {/* Header Controls */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
-        <div className="flex items-center gap-2">
+      <div className="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 flex flex-col sm:flex-row gap-2 sm:justify-between sm:items-center z-10">
+        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
           <Button
             variant="secondary"
             size="sm"
             onClick={handleZoomOut}
             disabled={zoom <= 0.5}
+            className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:p-2"
           >
             <ZoomOut className="h-4 w-4" />
           </Button>
@@ -108,6 +109,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, fileName, alt }: ImageMo
             size="sm"
             onClick={handleZoomIn}
             disabled={zoom >= 5}
+            className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:p-2"
           >
             <ZoomIn className="h-4 w-4" />
           </Button>
@@ -115,29 +117,32 @@ export function ImageModal({ isOpen, onClose, imageUrl, fileName, alt }: ImageMo
             variant="secondary"
             size="sm"
             onClick={handleReset}
+            className="h-8 sm:h-auto hidden sm:inline-flex"
           >
             Reset
           </Button>
           {fileName && (
-            <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">
+            <span className="text-white text-xs sm:text-sm bg-black/50 px-2 py-1 rounded truncate max-w-[120px] sm:max-w-none">
               {fileName}
             </span>
           )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button
             variant="secondary"
             size="sm"
             onClick={handleDownload}
+            className="h-8 sm:h-auto"
           >
             <Download className="h-4 w-4" />
-            Download
+            <span className="hidden sm:inline ml-1">Download</span>
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={onClose}
+            className="h-8 w-8 p-0 sm:h-auto sm:w-auto sm:p-2"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -146,7 +151,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, fileName, alt }: ImageMo
 
       {/* Image Container */}
       <div 
-        className="relative w-full h-full flex items-center justify-center overflow-hidden"
+        className="relative w-full h-full flex items-center justify-center overflow-hidden p-2 sm:p-4 pt-20 sm:pt-16 pb-12 sm:pb-16"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
@@ -171,9 +176,10 @@ export function ImageModal({ isOpen, onClose, imageUrl, fileName, alt }: ImageMo
       </div>
 
       {/* Instructions */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-        <div className="bg-black/50 text-white text-xs px-3 py-1 rounded-full">
-          Double-click to reset • Drag to pan when zoomed
+      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 sm:bottom-4">
+        <div className="bg-black/50 text-white text-xs px-3 py-1 rounded-full whitespace-nowrap">
+          <span className="hidden sm:inline">Double-click to reset • Drag to pan when zoomed</span>
+          <span className="sm:hidden">Pinch to zoom</span>
         </div>
       </div>
     </div>
