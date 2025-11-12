@@ -38,6 +38,16 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
       return;
     }
 
+    // Validate nickname length (2-20 characters to match backend)
+    if (nickname.trim().length < 2) {
+      error("Nickname must be at least 2 characters");
+      return;
+    }
+    if (nickname.trim().length > 20) {
+      error("Nickname must be 20 characters or less");
+      return;
+    }
+
     setLoading(true);
     try {
       // Create room on backend with custom name, TTL, and public flag
@@ -57,6 +67,17 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
       error("Please enter a nickname");
       return;
     }
+
+    // Validate nickname length (2-20 characters to match backend)
+    if (nickname.trim().length < 2) {
+      error("Nickname must be at least 2 characters");
+      return;
+    }
+    if (nickname.trim().length > 20) {
+      error("Nickname must be 20 characters or less");
+      return;
+    }
+
     if (!token.trim()) {
       error("Please enter a room token");
       return;
@@ -167,6 +188,16 @@ export function CreateJoinModal({ open, onJoin }: CreateJoinModalProps) {
   const handleJoinPublicRoom = async (roomToken: string) => {
     if (!nickname.trim()) {
       error("Please enter a nickname first");
+      return;
+    }
+
+    // Validate nickname length (2-20 characters to match backend)
+    if (nickname.trim().length < 2) {
+      error("Nickname must be at least 2 characters");
+      return;
+    }
+    if (nickname.trim().length > 20) {
+      error("Nickname must be 20 characters or less");
       return;
     }
 
