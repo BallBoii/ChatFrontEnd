@@ -7,6 +7,8 @@ export interface Ghost {
 // Room info from backend
 export interface Room {
   token: string;
+  name?: string;
+  isPublic?: boolean;
   expiresAt: string;
   participantCount: number;
   createdAt: string;
@@ -72,6 +74,7 @@ export type StickerMessage = MessageBase & {
 
 // IMAGE / FILE
 export interface Attachment {
+  id: string;
   fileName: string;
   fileSize: number;
   mimeType: string;

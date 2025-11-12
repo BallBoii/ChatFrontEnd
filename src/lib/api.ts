@@ -94,8 +94,20 @@ interface CreateRoomResponse {
   success: boolean;
   data: {
     token: string;
+    name?: string;
     expiresAt: string;
   };
+}
+
+interface PublicRoomsResponse {
+  success: boolean;
+  data: {
+    token: string;
+    name?: string;
+    participantCount: number;
+    expiresAt: string;
+    createdAt: string;
+  }[];
 }
 
 interface JoinRoomResponse {
@@ -117,11 +129,11 @@ export const ghostAPI = {
   /**
    * Create a new chat room
    */
-  async createRoom(ttlHours: number = 24): Promise<{ token: string; expiresAt: string }> {
+  async createRoom(ttlHours: number = 24, name?: string, isPublic: boolean = false): Promise<{ token: string; name?: string; expiresAt: string }> {
     const res = await fetch(`${BASE_URL}/api/rooms`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ttlHours }),
+      body: JSON.stringify({ ttlHours, name, isPublic }),
     });
     
     if (!res.ok) {
@@ -205,6 +217,21 @@ export const ghostAPI = {
     }
     
     const json: MessagesResponse = await res.json();
+    return json.data;
+  },
+
+  /**
+   * Get all public rooms
+   */
+  async getPublicRooms(): Promise<Array<{ token: string; name?: string; participantCount: number; expiresAt: string; createdAt: string }>> {
+    const res = await fetch(`${BASE_URL}/api/rooms/public`);
+    
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(error || `Failed to get public rooms: ${res.status}`);
+    }
+    
+    const json: PublicRoomsResponse = await res.json();
     return json.data;
   },
 };

@@ -4,15 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Send, Smile, Paperclip } from "lucide-react";
 import { StickerPicker } from "./StickerPicker";
 import { Sticker } from "@/types/sticker";
+import { FilePicker } from "./FilePicker";
 
 interface MessageComposerProps {
   onSend: (message: string) => void;
   onStickerSend?: (sticker: Sticker) => void;
+  onFileSend?: (files: File[], type: 'IMAGE' | 'FILE', caption?: string) => void;
 }
 
-export function MessageComposer({ onSend, onStickerSend }: MessageComposerProps) {
+export function MessageComposer({ onSend, onStickerSend, onFileSend }: MessageComposerProps) {
   const [message, setMessage] = useState("");
   const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [filePickerOpen, setFilePickerOpen] = useState(false);
 
   const handleSend = () => {
     if (message.trim()) {
@@ -33,6 +36,13 @@ export function MessageComposer({ onSend, onStickerSend }: MessageComposerProps)
       onStickerSend(sticker);
     }
     setShowStickerPicker(false);
+  };
+
+  const handleFileSelect = (files: File[], type: 'IMAGE' | 'FILE') => {
+    if (onFileSend) {
+      onFileSend(files, type);
+    }
+    setFilePickerOpen(false);
   };
 
   return (
@@ -63,6 +73,7 @@ export function MessageComposer({ onSend, onStickerSend }: MessageComposerProps)
                 size="icon"
                 className="h-8 w-8 rounded-lg hover:bg-muted"
                 type="button"
+                onClick={() => setFilePickerOpen(true)}
               >
                 <Paperclip className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -86,6 +97,12 @@ export function MessageComposer({ onSend, onStickerSend }: MessageComposerProps)
         isOpen={showStickerPicker}
         onClose={() => setShowStickerPicker(false)}
         onStickerSelect={handleStickerSelect}
+      />
+
+      <FilePicker
+        isOpen={filePickerOpen}
+        onClose={() => setFilePickerOpen(false)}
+        onFileSelect={handleFileSelect}
       />
     </>
   );
