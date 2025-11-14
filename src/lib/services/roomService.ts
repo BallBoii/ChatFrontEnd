@@ -43,4 +43,18 @@ export const roomService = {
   async getPublicRooms() {
     return await ghostAPI.getPublicRooms();
   },
+
+  /**
+   * Create or get existing DM room between two users
+   */
+  async getOrCreateDMRoom(currentUser: string, targetUser: string): Promise<{ token: string; name?: string; expiresAt: string; isNew: boolean }> {
+    return await ghostAPI.getOrCreateDMRoom(currentUser, targetUser);
+  },
+
+  /**
+   * Check if DM room exists between two users
+   */
+  async findExistingDMRoom(currentUser: string, targetUser: string): Promise<{ token: string; name?: string; expiresAt: string } | null> {
+    return await ghostAPI.findExistingDMRoom(currentUser, targetUser);
+  },
 };
