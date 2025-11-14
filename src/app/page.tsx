@@ -167,7 +167,7 @@ export default function App() {
                 </div>
                 <Badge
                   variant="outline"
-                  className="hidden md:flex h-8 w-8 p-0 rounded-full border-border items-center justify-center transition-colors cursor-pointer bg-muted group flex-shrink-0"
+                  className="h-8 w-8 p-0 rounded-full border-border items-center justify-center transition-colors cursor-pointer bg-muted group flex-shrink-0"
                   onClick={()=> setDarkMode(!darkMode) }
                 >
                   {darkMode ? (

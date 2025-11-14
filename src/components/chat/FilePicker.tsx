@@ -26,33 +26,33 @@ const FILE_CATEGORIES: FileCategory[] = [
     id: 'all',
     name: 'All Files',
     icon: <File className="h-4 w-4" />,
-    accept: '*/*',
+    accept: '.jpeg,.jpg,.png,.gif,.pdf,.doc,.docx,.txt,.zip,.rar,.mp4,.mov,.avi,.mp3,.wav',
     maxSize: 50,
-    description: 'Any file up to 50MB'
+    description: 'All supported files up to 50MB'
   },
   {
     id: 'images',
     name: 'Images',
     icon: <Image className="h-4 w-4" />,
-    accept: 'image/*',
+    accept: '.jpeg,.jpg,.png,.gif',
     maxSize: 10,
-    description: 'PNG, JPG, GIF up to 10MB'
+    description: 'JPEG, PNG, GIF up to 10MB'
   },
   {
     id: 'documents',
     name: 'Documents',
     icon: <FileText className="h-4 w-4" />,
-    accept: '.pdf,.doc,.docx,.txt,.rtf',
+    accept: '.pdf,.doc,.docx,.txt',
     maxSize: 25,
-    description: 'PDF, DOC, TXT up to 25MB'
+    description: 'PDF, DOC, DOCX, TXT up to 25MB'
   },
   {
     id: 'archives',
     name: 'Archives',
     icon: <Archive className="h-4 w-4" />,
-    accept: '.zip,.rar,.7z,.tar,.gz',
+    accept: '.zip,.rar',
     maxSize: 50,
-    description: 'ZIP, RAR, 7Z up to 50MB'
+    description: 'ZIP, RAR up to 50MB'
   }
 ];
 
