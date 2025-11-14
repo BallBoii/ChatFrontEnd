@@ -34,11 +34,6 @@ export function Lobby({ nickname, darkMode, onDarkModeToggle, onJoin, onStartDM,
               <div>
                 <DialogTitle className="text-lg">GhostRooms</DialogTitle>
               </div>
-              <div>
-                <DialogDescription className="text-sm text-muted-foreground">
-                  <span className="font-medium">{nickname}</span>
-                </DialogDescription>
-              </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge
