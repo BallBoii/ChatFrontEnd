@@ -68,7 +68,7 @@ export function UserSetupModal({ open, onUsernameSet }: UserSetupModalProps) {
             <div className="text-primary">
               <GhostLogo size={32} />
             </div>
-            <DialogTitle className="text-2xl">Welcome to GhostRooms</DialogTitle>
+            <DialogTitle className="text-2xl">GhostRooms</DialogTitle>
           </div>
           <DialogDescription className="text-center text-muted-foreground">
             Choose your username to get started
