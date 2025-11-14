@@ -98,6 +98,27 @@ export default function App() {
     }
   };
 
+  const handleStartDM = async (targetUser: string) => {
+    try {
+      // Get or create DM room
+      const dmRoom = await roomService.getOrCreateDMRoom(nickname, targetUser);
+      
+      if (dmRoom.isNew) {
+        success(`Started new DM with ${targetUser}. This room only exists for 15 minutes!`);
+      } else{
+        // renew the ttl but กูพอละ
+      }
+      
+      // Join the DM room
+      const dmSession = await roomService.joinRoom(dmRoom.token, nickname);
+      await handleJoin(dmSession);
+      
+    } catch (err: any) {
+      console.error('Failed to start DM:', err);
+      error(err.message || 'Failed to start DM');
+    }
+  };
+
   const handleSendMessage = (content: string) => {
     if (!session) return;
     sendMessage(content);
@@ -203,7 +224,7 @@ export default function App() {
 
             {/* Content - Fixed Height with Scroll */}
             <div className="h-[450px] overflow-y-auto -mx-6">
-              {desktopTab === "users" && <ActiveUsersPanel currentNickname={nickname} />}
+              {desktopTab === "users" && <ActiveUsersPanel currentNickname={nickname} onStartDM={handleStartDM} />}
               {desktopTab === "rooms" && <RoomBrowser nickname={nickname} onJoin={handleJoin} />}
             </div>
 
@@ -229,7 +250,12 @@ export default function App() {
           <TopBar token={session.roomToken} timeLeft={timeLeft} darkMode={darkMode} setDarkMode={setDarkMode} onLeave={handleLogout} />
           
           <div className="flex-1 flex overflow-hidden">
-            <MembersPanel participantCount={participantCount} participants={participants} currentNickname={session.nickname} />
+            <MembersPanel 
+              participantCount={participantCount} 
+              participants={participants} 
+              currentNickname={session.nickname}
+              onStartDM={handleStartDM}
+            />
             
             <div className="flex-1 flex flex-col">
               <MessageList messages={messages} />
@@ -271,7 +297,7 @@ export default function App() {
                       return (
                         <div 
                           key={`${participant}-${index}`}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${
+                          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl ${
                             isCurrentUser ? 'bg-muted/50' : 'hover:bg-muted/30'
                           }`}
                         >
@@ -293,6 +319,19 @@ export default function App() {
                               {isCurrentUser && <span className="text-xs text-muted-foreground">(you)</span>}
                             </div>
                           </div>
+                          
+                          {/* DM Button - Mobile */}
+                          {!isCurrentUser && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleStartDM(participant)}
+                              title={`Send DM to ${participant}`}
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       );
                     })}

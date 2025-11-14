@@ -1,13 +1,20 @@
-import { Users } from "lucide-react";
+import { Users, MessageSquare } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 
 interface MembersPanelProps {
   participantCount: number;
   participants: string[]; // List of all nicknames
   currentNickname: string;
+  onStartDM?: (targetUser: string) => void; // Callback for starting DM
 }
 
-export function MembersPanel({ participantCount, participants, currentNickname }: MembersPanelProps) {
+export function MembersPanel({ 
+  participantCount, 
+  participants, 
+  currentNickname,
+  onStartDM 
+}: MembersPanelProps) {
   return (
     <div className="w-64 border-r border-border bg-card hidden md:flex flex-col">
       <div className="h-16 px-4 flex items-center gap-2 border-b border-border shrink-0">
@@ -24,7 +31,7 @@ export function MembersPanel({ participantCount, participants, currentNickname }
               return (
                 <div 
                   key={`${participant}-${index}`}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl ${
                     isCurrentUser ? 'bg-muted/50' : 'hover:bg-muted/30'
                   }`}
                 >
@@ -51,6 +58,19 @@ export function MembersPanel({ participantCount, participants, currentNickname }
                       )}
                     </div>
                   </div>
+                  
+                  {/* DM Button - only show for other users */}
+                  {!isCurrentUser && onStartDM && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => onStartDM(participant)}
+                      title={`Send DM to ${participant}`}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               );
             })}

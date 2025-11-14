@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { Users } from "lucide-react";
+import { Users, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useSocket } from "@/context/SocketContext";
 
 interface ActiveUsersPanelProps {
   currentNickname: string;
+  onStartDM?: (targetUser: string) => void;
 }
 
-export function ActiveUsersPanel({ currentNickname }: ActiveUsersPanelProps) {
+export function ActiveUsersPanel({ currentNickname, onStartDM }: ActiveUsersPanelProps) {
   const [activeUsers, setActiveUsers] = useState<string[]>([]);
   const { socket, getActiveUsers } = useSocket();
 
@@ -50,7 +52,7 @@ export function ActiveUsersPanel({ currentNickname }: ActiveUsersPanelProps) {
             return (
               <div
                 key={`${user}-${index}`}
-                className={`p-3 rounded-xl border transition-colors ${
+                className={`group p-3 rounded-xl border transition-colors ${
                   isYou
                     ? 'bg-primary/10 border-primary/20'
                     : 'bg-muted/50 border-border hover:bg-muted'
@@ -73,6 +75,19 @@ export function ActiveUsersPanel({ currentNickname }: ActiveUsersPanelProps) {
                       {isYou && <span className="text-xs text-muted-foreground ml-2">(you)</span>}
                     </p>
                   </div>
+                  
+                  {/* DM Button - only show for other users */}
+                  {!isYou && onStartDM && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => onStartDM(user)}
+                      title={`Send DM to ${user}`}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             );

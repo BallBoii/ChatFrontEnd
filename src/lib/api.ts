@@ -125,22 +125,143 @@ interface MessagesResponse {
   data: Message[];
 }
 
+/**
+ * Simple hash function for generating deterministic DM room names
+ * Uses FNV-1a hash algorithm (fast and collision-resistant for short strings)
+ */
+function hashString(str: string): string {
+  let hash = 2166136261; // FNV offset basis
+  
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619); // FNV prime
+  }
+  
+  // Convert to positive number and then to base36 (0-9, a-z)
+  const hashStr = Math.abs(hash).toString(36);
+  
+  // Return first 4 characters, padded with '0' if needed
+  return hashStr.substring(0, 4).padEnd(4, '0');
+}
+
 export const ghostAPI = {
+  /**
+   * Create a DM room
+   */
+  async createDMRoom(
+    currentUser: string,
+    targetUser: string
+  ): Promise<{ token: string; name?: string; expiresAt: string }> {
+    // Sort usernames to ensure same room regardless of who initiates
+    const users = [currentUser, targetUser].sort();
+
+    // Combine sorted usernames and hash
+    const combinedNames = users.join(":");
+    const hashedName = hashString(combinedNames);
+
+    // DM room name format: 4-character hash
+    const dmName = hashedName;
+
+    // Create room with isDM flag (backend already supports this)
+    const res = await fetch(`${BASE_URL}/api/rooms`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ttlHours: 0.25, // 15 minutes initial TTL
+        name: dmName,
+        isPublic: false,
+        isDM: true, // Backend will generate ghost-dm-{name} token
+      }),
+    });
+
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(error || `Failed to create DM room: ${res.status}`);
+    }
+
+    const json: CreateRoomResponse = await res.json();
+    return json.data;
+  },
+
+  /**
+   * Find existing DM room between two users
+   * Checks if DM room already exists by looking for the token pattern
+   */
+  async findExistingDMRoom(
+    currentUser: string,
+    targetUser: string
+  ): Promise<{ token: string; name?: string; expiresAt: string } | null> {
+    const users = [currentUser, targetUser].sort();
+
+    // Generate the same hash
+    const combinedNames = users.join(":");
+    const hashedName = hashString(combinedNames);
+    const dmName = hashedName;
+    const expectedToken = `ghost-dm-${dmName}`;
+
+    // Try to validate if this room exists and is active
+    try {
+      const isValid = await this.validateRoom(expectedToken);
+      if (isValid) {
+        // Room exists, get its info
+        const roomInfo = await this.getRoomInfo(expectedToken);
+        return {
+          token: roomInfo.token,
+          name: roomInfo.name,
+          expiresAt: roomInfo.expiresAt.toString(),
+        };
+      }
+    } catch (error) {
+      // Room doesn't exist or is expired
+      return null;
+    }
+
+    return null;
+  },
+
+  /**
+   * Get or create DM room (checks if exists first)
+   */
+  async getOrCreateDMRoom(
+    currentUser: string,
+    targetUser: string
+  ): Promise<{
+    token: string;
+    name?: string;
+    expiresAt: string;
+    isNew: boolean;
+  }> {
+    // Check if DM room already exists
+    const existingRoom = await this.findExistingDMRoom(currentUser, targetUser);
+
+    if (existingRoom) {
+      return { ...existingRoom, isNew: false };
+    }
+
+    // Create new DM room if doesn't exist
+    const newRoom = await this.createDMRoom(currentUser, targetUser);
+    return { ...newRoom, isNew: true };
+  },
+
   /**
    * Create a new chat room
    */
-  async createRoom(ttlHours: number = 24, name?: string, isPublic: boolean = false): Promise<{ token: string; name?: string; expiresAt: string }> {
+  async createRoom(
+    ttlHours: number = 24,
+    name?: string,
+    isPublic: boolean = false
+  ): Promise<{ token: string; name?: string; expiresAt: string }> {
     const res = await fetch(`${BASE_URL}/api/rooms`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ttlHours, name, isPublic }),
     });
-    
+
     if (!res.ok) {
       const error = await res.text();
       throw new Error(error || `Failed to create room: ${res.status}`);
     }
-    
+
     const json: CreateRoomResponse = await res.json();
     return json.data;
   },
@@ -150,12 +271,12 @@ export const ghostAPI = {
    */
   async getRoomInfo(roomToken: string): Promise<Room> {
     const res = await fetch(`${BASE_URL}/api/rooms/${roomToken}`);
-    
+
     if (!res.ok) {
       const error = await res.text();
       throw new Error(error || `Failed to get room info: ${res.status}`);
     }
-    
+
     const json: RoomInfoResponse = await res.json();
     return json.data;
   },
@@ -177,16 +298,16 @@ export const ghostAPI = {
    */
   async joinRoom(roomToken: string, nickname: string): Promise<Session> {
     const res = await fetch(`${BASE_URL}/api/rooms/${roomToken}/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nickname }),
     });
-    
+
     if (!res.ok) {
       const error = await res.text();
       throw new Error(error || `Failed to join room: ${res.status}`);
     }
-    
+
     const json: JoinRoomResponse = await res.json();
     return json.data;
   },
@@ -195,27 +316,29 @@ export const ghostAPI = {
    * Get messages from a room
    */
   async getMessages(
-    roomToken: string, 
+    roomToken: string,
     sessionToken: string,
     options?: { limit?: number; before?: string }
   ): Promise<Message[]> {
     const params = new URLSearchParams();
-    if (options?.limit) params.set('limit', options.limit.toString());
-    if (options?.before) params.set('before', options.before);
-    
-    const url = `${BASE_URL}/api/messages/${roomToken}${params.toString() ? '?' + params.toString() : ''}`;
-    
+    if (options?.limit) params.set("limit", options.limit.toString());
+    if (options?.before) params.set("before", options.before);
+
+    const url = `${BASE_URL}/api/messages/${roomToken}${
+      params.toString() ? "?" + params.toString() : ""
+    }`;
+
     const res = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${sessionToken}`,
+        Authorization: `Bearer ${sessionToken}`,
       },
     });
-    
+
     if (!res.ok) {
       const error = await res.text();
       throw new Error(error || `Failed to get messages: ${res.status}`);
     }
-    
+
     const json: MessagesResponse = await res.json();
     return json.data;
   },
@@ -223,14 +346,22 @@ export const ghostAPI = {
   /**
    * Get all public rooms
    */
-  async getPublicRooms(): Promise<Array<{ token: string; name?: string; participantCount: number; expiresAt: string; createdAt: string }>> {
+  async getPublicRooms(): Promise<
+    Array<{
+      token: string;
+      name?: string;
+      participantCount: number;
+      expiresAt: string;
+      createdAt: string;
+    }>
+  > {
     const res = await fetch(`${BASE_URL}/api/rooms/public`);
-    
+
     if (!res.ok) {
       const error = await res.text();
       throw new Error(error || `Failed to get public rooms: ${res.status}`);
     }
-    
+
     const json: PublicRoomsResponse = await res.json();
     return json.data;
   },
