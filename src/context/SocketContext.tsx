@@ -72,7 +72,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
-      autoConnect: true, // Change it to be true since we required the username first during app startup
+      autoConnect: false, // back to false since when we view the file we don't want it to connect
       reconnection: false,
     });
 
@@ -301,6 +301,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const setUsername = useCallback((username: string) => {
     if (!socket) return;
+
+    if(!socket.connected)
+      socket.connect();
+
     socket.emit('set_username', { username });
   }, [socket]);
 
@@ -323,6 +327,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setNickname(nick);
     setIsReconnecting(false);
     shouldShowJoinNotification.current = true;
+
+    if(!socket.connected) // just ensure connection
+      socket.connect();
 
     socket.emit('join_room', { roomToken: roomTkn, sessionToken: sessionTkn });
 
