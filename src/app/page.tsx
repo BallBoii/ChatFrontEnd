@@ -29,7 +29,7 @@ export default function App() {
   const [usernameSet, setUsernameSet] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [timeLeft, setTimeLeft] = useState("59:45");
-  const [mobileTab, setMobileTab] = useState<"users" | "rooms" | "chat" | "members" | "settings">("users");
+  const [mobileTab, setMobileTab] = useState<"chat" | "members" | "settings">("chat");
   const [desktopTab, setDesktopTab] = useState<"users" | "rooms">("users");
   const [darkMode, setDarkMode] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -122,7 +122,7 @@ export default function App() {
       setSession(null);
       setExpiresAt(null);
     }
-    setMobileTab("users");
+    setMobileTab("chat");
     setDesktopTab("users");
   };
 

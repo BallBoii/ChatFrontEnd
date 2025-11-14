@@ -464,13 +464,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!socket) return;
 
     socket.emit('leave_room');
-    // socket.disconnect();
     setMessages([]);
     setParticipantCount(0);
     setParticipants([]); // Clear participants list
     setRoomToken('');
     setSessionToken('');
-    // setNickname('');
   }, [socket]);
 
   return (
