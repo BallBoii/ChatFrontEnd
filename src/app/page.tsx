@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { CreateJoinModal } from "@/components/chat/CreateJoinModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { UserSetupModal } from "@/components/chat/UserSetupModal";
+import { RoomBrowser } from "@/components/chat/RoomBrowser";
 import { TopBar } from "@/components/chat/TopBar";
 import { MembersPanel } from "@/components/chat/MembersPanel";
 import { MessageList } from "@/components/chat/MessageList";
@@ -9,7 +11,9 @@ import { MessageComposer } from "@/components/chat/MessageComposer";
 import { MobileNav } from "@/components/chat/MobileNav";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { CuteBackground } from "@/components/chat/CuteBackground";
-import { Users, Settings as SettingsIcon, LogOut, Copy } from "lucide-react";
+import { ActiveUsersPanel } from "@/components/chat/ActiveUsersPanel";
+import { Users, Settings as SettingsIcon, LogOut, Copy, MessageCircle, DoorOpen, Sun, Moon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -19,15 +23,18 @@ import { roomService } from "@/lib/services/roomService";
 import { preloadStickerMap } from "@/lib/utils/stickerMap";
 import type { Sticker } from "@/types/sticker";
 import type { Session } from "@/types/chat";
+import { GhostLogo } from "@/components/chat/GhostLogo";
 
 export default function App() {
+  const [usernameSet, setUsernameSet] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [timeLeft, setTimeLeft] = useState("59:45");
-  const [mobileTab, setMobileTab] = useState<"chat" | "members" | "settings">("chat");
+  const [mobileTab, setMobileTab] = useState<"users" | "rooms" | "chat" | "members" | "settings">("users");
+  const [desktopTab, setDesktopTab] = useState<"users" | "rooms">("users");
   const [darkMode, setDarkMode] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
-  const { messages, joinRoom, sendMessage, sendImage, sendFile, sendSticker, leaveRoom, participantCount, participants, uploading } = useSocket();
+  const { messages, joinRoom, sendMessage, sendImage, sendFile, sendSticker, leaveRoom, participantCount, participants, nickname } = useSocket();
   const { success, error } = useEventNotifications();
 
   // Preload sticker map on app mount
@@ -68,6 +75,10 @@ export default function App() {
     return () => clearInterval(interval);
   }, [expiresAt]);
 
+  const handleUsernameSet = () => {
+    setUsernameSet(true);
+  };
+
   const handleJoin = async (joinedSession: Session) => {
     try {
       setSession(joinedSession);
@@ -79,9 +90,8 @@ export default function App() {
       // Join via WebSocket
       joinRoom(joinedSession.roomToken, joinedSession.sessionToken, joinedSession.nickname);
       
-      // Load message history
-      const history = await roomService.getMessages(joinedSession.roomToken, joinedSession.sessionToken, 50);
-      // Messages from backend are already in UIMessage format via SocketContext
+      // Switch to chat tab
+      setMobileTab("chat");
     } catch (err) {
       console.error('Failed to complete join:', err);
       error('Failed to join room');
@@ -107,30 +117,108 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    leaveRoom();
-    setSession(null);
-    setExpiresAt(null);
-    setMobileTab("chat");
+    if (session) {
+      leaveRoom();
+      setSession(null);
+      setExpiresAt(null);
+    }
+    setMobileTab("users");
+    setDesktopTab("users");
   };
 
   const handleCopyToken = () => {
     if(!session) return;
-
     navigator.clipboard.writeText(session.roomToken);
     success("Token copied to clipboard");
   };
 
-  if (!session) {
+  // Step 1: Show username modal if username not set
+  if (!usernameSet) {
     return (
       <>
         <div className="size-full flex items-center justify-center">
           <CuteBackground />
         </div>
-        <CreateJoinModal open={true} onJoin={handleJoin} />
+        <UserSetupModal open={true} onUsernameSet={handleUsernameSet} />
       </>
     );
   }
 
+  // Step 2: Show main menu with users/rooms tabs (not in a room yet)
+  if (!session) {
+    return (
+      <div className="size-full flex items-center justify-center p-4">
+        <CuteBackground />
+        
+        <Dialog open={true} modal>
+          <DialogContent className="sm:max-w-md border-border bg-card shadow-2xl" hideClose>
+            <DialogHeader className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-primary">
+                    <GhostLogo size={28} />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg">GhostRooms</DialogTitle>
+                    <DialogDescription className="text-xs">
+                      Welcome, {nickname}
+                    </DialogDescription>
+                  </div>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="hidden md:flex h-8 w-8 p-0 rounded-full border-border items-center justify-center transition-colors cursor-pointer bg-muted group flex-shrink-0"
+                  onClick={()=> setDarkMode(!darkMode) }
+                >
+                  {darkMode ? (
+                    <Moon className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                  ) : (
+                    <Sun className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </Badge>
+              </div>
+            </DialogHeader>
+
+            {/* Tab Buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant={desktopTab === "users" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDesktopTab("users")}
+                className="rounded-lg flex-1"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Users
+              </Button>
+              <Button
+                variant={desktopTab === "rooms" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setDesktopTab("rooms")}
+                className="rounded-lg flex-1"
+              >
+                <DoorOpen className="h-4 w-4 mr-2" />
+                Rooms
+              </Button>
+            </div>
+
+            {/* Content - Fixed Height with Scroll */}
+            <div className="h-[450px] overflow-y-auto -mx-6">
+              {desktopTab === "users" && <ActiveUsersPanel currentNickname={nickname} />}
+              {desktopTab === "rooms" && <RoomBrowser nickname={nickname} onJoin={handleJoin} />}
+            </div>
+
+            {/* Decorative Background Blobs */}
+            <div className="absolute inset-0 -z-10 overflow-hidden rounded-lg pointer-events-none">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/5 rounded-full blur-3xl" />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Step 3: User is in a room - show chat interface
   return (
     <div className="size-full flex items-center justify-center p-4 lg:p-6">
       <CuteBackground />
@@ -149,7 +237,6 @@ export default function App() {
                 onSend={handleSendMessage} 
                 onStickerSend={handleSendSticker}
                 onFileSend={handleSendFile}
-                // disabled={uploading}
               />
             </div>
           </div>
@@ -163,127 +250,96 @@ export default function App() {
             <TopBar token={session.roomToken} timeLeft={timeLeft} darkMode={darkMode} setDarkMode={setDarkMode} onLeave={handleLogout} />
 
             <div className="flex-1 flex overflow-hidden pb-5">
-              {/* Main Chat Area */}
               <div className={`flex-1 flex flex-col ${mobileTab === "chat" ? "flex" : "hidden"}`}>
                 <MessageList messages={messages} />
                 <MessageComposer 
                   onSend={handleSendMessage} 
                   onStickerSend={handleSendSticker}  
                   onFileSend={handleSendFile}
-                  // disabled={uploading}
                 />
               </div>
 
-          {/* Mobile Members Panel */}
-          {mobileTab === "members" && (
-            <div className="flex-1 flex flex-col bg-card overflow-hidden">
-              <div className="h-16 px-4 flex items-center gap-2 border-b border-border">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Members ({participantCount})</span>
-              </div>
-              <div className="flex-1 overflow-auto p-3 space-y-1">
-                {/* Show all participants */}
-                {participants.map((participant, index) => {
-                  const isCurrentUser = participant === session.nickname;
-                  return (
-                    <div 
-                      key={`${participant}-${index}`}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${
-                        isCurrentUser ? 'bg-muted/50' : 'hover:bg-muted/30'
-                      }`}
-                    >
-                      <div className="relative">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          isCurrentUser 
-                            ? 'bg-gradient-to-br from-primary/20 to-secondary/20'
-                            : 'bg-gradient-to-br from-muted to-muted-foreground/10'
-                        }`}>
-                          <span className="text-sm font-medium">
-                            {participant.charAt(0).toUpperCase()}
-                          </span>
+              {mobileTab === "members" && (
+                <div className="flex-1 flex flex-col bg-card overflow-hidden">
+                  <div className="h-16 px-4 flex items-center gap-2 border-b border-border">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Members ({participantCount})</span>
+                  </div>
+                  <div className="flex-1 overflow-auto p-3 space-y-1">
+                    {participants.map((participant, index) => {
+                      const isCurrentUser = participant === session.nickname;
+                      return (
+                        <div 
+                          key={`${participant}-${index}`}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${
+                            isCurrentUser ? 'bg-muted/50' : 'hover:bg-muted/30'
+                          }`}
+                        >
+                          <div className="relative">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              isCurrentUser 
+                                ? 'bg-gradient-to-br from-primary/20 to-secondary/20'
+                                : 'bg-gradient-to-br from-muted to-muted-foreground/10'
+                            }`}>
+                              <span className="text-sm font-medium">
+                                {participant.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-card"></div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm truncate font-medium">{participant}</p>
+                              {isCurrentUser && <span className="text-xs text-muted-foreground">(you)</span>}
+                            </div>
+                          </div>
                         </div>
-                        {/* Online indicator */}
-                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-card"></div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm truncate font-medium">
-                            {participant}
-                          </p>
-                          {isCurrentUser && (
-                            <span className="text-xs text-muted-foreground">(you)</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Fallback if participants list is empty but count > 0 */}
-                {participants.length === 0 && participantCount > 0 && (
-                  <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-                    {participantCount} {participantCount === 1 ? 'ghost' : 'ghosts'} in room
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Mobile Settings Panel */}
-          {mobileTab === "settings" && (
-            <div className="flex-1 flex flex-col bg-card overflow-hidden">
-              <div className="h-16 px-4 flex items-center gap-2 border-b border-border">
-                <SettingsIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Settings</span>
-              </div>
-              <div className="flex-1 overflow-auto p-4 space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="dark-mode">Dark Mode</Label>
-                      <p className="text-sm text-muted-foreground">Toggle dark theme</p>
-                    </div>
-                    <Switch
-                      id="dark-mode"
-                      checked={darkMode}
-                      onCheckedChange={setDarkMode}
-                      className="bg-muted-foreground/10"
-                    />
-                  </div>
-
-                  <div className="pt-4 border-t border-border">
-                    <div className="space-y-2">
-                      <Label>Current Session</Label>
-                      <p className="text-sm text-muted-foreground break-words">
-                        Logged in as <span className="text-foreground">{session.nickname}</span>
-                      </p>
-                      <p className="text-sm text-muted-foreground break-words">
-                        Room: <code className="text-foreground cursor-pointer inline-flex items-center gap-1 group hover:text-muted-foreground transition-colors break-all" onClick={handleCopyToken}>
-                                <span className="break-all">{session.roomToken}</span>
-                                <Copy className="h-3 w-3 flex-shrink-0" />
-                              </code>
-                      </p>
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={handleLogout}
-                    variant="destructive"
-                    className="w-full rounded-xl h-11"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Leave Room
-                  </Button>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
+
+              {mobileTab === "settings" && (
+                <div className="flex-1 flex flex-col bg-card overflow-hidden">
+                  <div className="h-16 px-4 flex items-center gap-2 border-b border-border">
+                    <SettingsIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Settings</span>
+                  </div>
+                  <div className="flex-1 overflow-auto p-4 space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between py-3">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="dark-mode">Dark Mode</Label>
+                          <p className="text-sm text-muted-foreground">Toggle dark theme</p>
+                        </div>
+                        <Switch id="dark-mode" checked={darkMode} onCheckedChange={setDarkMode} />
+                      </div>
+                      <div className="pt-4 border-t border-border">
+                        <div className="space-y-2">
+                          <Label>Current Session</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Logged in as <span className="text-foreground">{session.nickname}</span>
+                          </p>
+                          <p className="text-sm text-muted-foreground break-words">
+                            Room: <code className="text-foreground cursor-pointer inline-flex items-center gap-1" onClick={handleCopyToken}>
+                              {session.roomToken} <Copy className="h-3 w-3" />
+                            </code>
+                          </p>
+                        </div>
+                      </div>
+                      <Button onClick={handleLogout} variant="destructive" className="w-full rounded-xl h-11">
+                        <LogOut className="h-4 w-4 mr-2" /> Leave Room
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation - Outside container so it's positioned correctly */}
       <MobileNav activeTab={mobileTab} onTabChange={setMobileTab} />
     </div>
   );

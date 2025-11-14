@@ -5,11 +5,16 @@ import { io, Socket } from 'socket.io-client';
 import { Message, toUIMessage, UIMessage, Attachment } from '@/types/chat';
 import { Sticker } from '@/types/sticker';
 import { useEventNotifications } from '@/components/chat/useEventNotifications';
+import { PublicRoomDTO } from '@/types/room';
 
 interface SocketContextType {
   socket: Socket | null;
   connected: boolean;
   messages: UIMessage[];
+  setUsername: (username: string) => void;
+  getActiveUsers: () => void;
+  getPublicRooms: () => void;
+  publicRooms: PublicRoomDTO[];
   joinRoom: (roomToken: string, sessionToken: string, nickname: string) => void;
   sendMessage: (content: string) => void;
   sendSticker: (sticker: Sticker) => void;
@@ -39,6 +44,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [participantCount, setParticipantCount] = useState(0);
   const [participants, setParticipants] = useState<string[]>([]); // Track all participants
+  const [publicRooms, setPublicRooms] = useState<PublicRoomDTO[]>([]);
   const [nickname, setNickname] = useState('');
   const [roomToken, setRoomToken] = useState('');
   const [sessionToken, setSessionToken] = useState('');
@@ -66,7 +72,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
-      autoConnect: false, // We'll connect manually when joining a room
+      autoConnect: true, // Change it to be true since we required the username first during app startup
       reconnection: false,
     });
 
@@ -79,6 +85,21 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log('Disconnected from WebSocket server');
       setConnected(false);
     });
+
+    newSocket.on('username_set', (data: { username: string }) => {
+      console.log('Username set on server:', data.username);
+      setNickname(data.username);
+    });
+  
+    newSocket.on('active_users', (data: { users: string[] }) => {
+      console.log('Active users received:', data.users);
+      // Handle active users list if needed
+    });
+
+    newSocket.on('public_rooms_update', (data: { rooms: PublicRoomDTO[] }) => {
+      console.log('Public rooms update received:', data.rooms);
+      setPublicRooms(data.rooms);
+    }); 
 
     // Backend event: room_joined - includes message history
     newSocket.on('room_joined', (data: { 
@@ -278,6 +299,22 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => clearInterval(heartbeatInterval);
   }, [socket, connected]);
 
+  const setUsername = useCallback((username: string) => {
+    if (!socket) return;
+    socket.emit('set_username', { username });
+  }, [socket]);
+
+  const getActiveUsers = useCallback(() => {
+    if (!socket) return;
+    socket.emit('get_active_users');
+  }, [socket]);
+
+  const getPublicRooms = useCallback(() => {
+    if (!socket) return;
+    console.log('Requesting public rooms...');
+    socket.emit('get_public_rooms');
+  }, [socket]);
+
   const joinRoom = useCallback((roomTkn: string, sessionTkn: string, nick: string) => {
     if (!socket) return;
 
@@ -287,14 +324,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsReconnecting(false);
     shouldShowJoinNotification.current = true;
 
-    const doJoin = () => socket.emit('join_room', { roomToken: roomTkn, sessionToken: sessionTkn });
+    socket.emit('join_room', { roomToken: roomTkn, sessionToken: sessionTkn });
 
-    if (socket.connected) {
-      doJoin();
-    } else {
-      socket.once('connect', doJoin);
-      socket.connect();
-    }
+    // const doJoin = () => socket.emit('join_room', { roomToken: roomTkn, sessionToken: sessionTkn });
+
+    // if (socket.connected) {
+    //   doJoin();
+    // } else {
+    //   socket.once('connect', doJoin);
+    //   socket.connect();
+    // }
   }, [socket]);
 
 
@@ -425,13 +464,13 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!socket) return;
 
     socket.emit('leave_room');
-    socket.disconnect();
+    // socket.disconnect();
     setMessages([]);
     setParticipantCount(0);
     setParticipants([]); // Clear participants list
     setRoomToken('');
     setSessionToken('');
-    setNickname('');
+    // setNickname('');
   }, [socket]);
 
   return (
@@ -440,6 +479,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         socket,
         connected,
         messages,
+        setUsername,
+        getActiveUsers,
+        getPublicRooms,
+        publicRooms,
         joinRoom,
         sendMessage,
         sendSticker,
