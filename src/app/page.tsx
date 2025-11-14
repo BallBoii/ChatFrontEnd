@@ -12,6 +12,7 @@ import { MobileNav } from "@/components/chat/MobileNav";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { CuteBackground } from "@/components/chat/CuteBackground";
 import { ActiveUsersPanel } from "@/components/chat/ActiveUsersPanel";
+import { Lobby } from "@/components/chat/Lobby";
 import { Users, Settings as SettingsIcon, LogOut, Copy, MessageCircle, DoorOpen, Sun, Moon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,6 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [timeLeft, setTimeLeft] = useState("59:45");
   const [mobileTab, setMobileTab] = useState<"chat" | "members" | "settings">("chat");
-  const [desktopTab, setDesktopTab] = useState<"users" | "rooms">("users");
   const [darkMode, setDarkMode] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
@@ -77,6 +77,10 @@ export default function App() {
 
   const handleUsernameSet = () => {
     setUsernameSet(true);
+  };
+
+  const handleBackToSetup = () => {
+    setUsernameSet(false);
   };
 
   const handleJoin = async (joinedSession: Session) => {
@@ -144,7 +148,6 @@ export default function App() {
       setExpiresAt(null);
     }
     setMobileTab("chat");
-    setDesktopTab("users");
   };
 
   const handleCopyToken = () => {
@@ -170,71 +173,14 @@ export default function App() {
     return (
       <div className="size-full flex items-center justify-center p-4">
         <CuteBackground />
-        
-        <Dialog open={true} modal>
-          <DialogContent className="sm:max-w-md border-border bg-card shadow-2xl" hideClose>
-            <DialogHeader className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="text-primary">
-                    <GhostLogo size={28} />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-lg">GhostRooms</DialogTitle>
-                    <DialogDescription className="text-xs">
-                      Welcome, {nickname}
-                    </DialogDescription>
-                  </div>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="h-8 w-8 p-0 rounded-full border-border items-center justify-center transition-colors cursor-pointer bg-muted group flex-shrink-0"
-                  onClick={()=> setDarkMode(!darkMode) }
-                >
-                  {darkMode ? (
-                    <Moon className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                  ) : (
-                    <Sun className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                  )}
-                </Badge>
-              </div>
-            </DialogHeader>
-
-            {/* Tab Buttons */}
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant={desktopTab === "users" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setDesktopTab("users")}
-                className="rounded-lg flex-1"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Users
-              </Button>
-              <Button
-                variant={desktopTab === "rooms" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setDesktopTab("rooms")}
-                className="rounded-lg flex-1"
-              >
-                <DoorOpen className="h-4 w-4 mr-2" />
-                Rooms
-              </Button>
-            </div>
-
-            {/* Content - Fixed Height with Scroll */}
-            <div className="h-[450px] overflow-y-auto -mx-6">
-              {desktopTab === "users" && <ActiveUsersPanel currentNickname={nickname} onStartDM={handleStartDM} />}
-              {desktopTab === "rooms" && <RoomBrowser nickname={nickname} onJoin={handleJoin} />}
-            </div>
-
-            {/* Decorative Background Blobs */}
-            <div className="absolute inset-0 -z-10 overflow-hidden rounded-lg pointer-events-none">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/5 rounded-full blur-3xl" />
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Lobby 
+          nickname={nickname}
+          darkMode={darkMode}
+          onDarkModeToggle={() => setDarkMode(!darkMode)}
+          onJoin={handleJoin}
+          onStartDM={handleStartDM}
+          onBack={handleBackToSetup}
+        />
       </div>
     );
   }

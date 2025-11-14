@@ -377,10 +377,9 @@ export function RoomBrowser({ nickname, onJoin }: RoomBrowserProps) {
             <div className="text-center py-8 text-muted-foreground">
               <Globe className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>No public rooms available</p>
-              <p className="text-xs mt-1">Auto-refreshing every 5 seconds</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
               {publicRooms.map((room) => (
                 <div
                   key={room.token}

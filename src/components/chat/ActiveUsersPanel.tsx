@@ -46,7 +46,7 @@ export function ActiveUsersPanel({ currentNickname, onStartDM }: ActiveUsersPane
           <p className="text-xs mt-1">Be the first!</p>
         </div>
       ) : (
-        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+        <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
           {activeUsers.map((user, index) => {
             const isYou = user === currentNickname;
             return (

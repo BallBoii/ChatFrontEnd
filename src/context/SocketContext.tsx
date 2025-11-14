@@ -187,7 +187,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     newSocket.on('user_left', (data: { nickname: string; participantCount: number; participants: string[] }) => {
       console.log('User left:', data);
       setParticipantCount(data.participantCount);
-      setParticipants(data.participants || []); // Update participants list
+      setParticipants(data.participants || []);
       
       // Add system message
       const systemMessage: UIMessage = {
@@ -201,27 +201,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isSystem: true,
       };
       
-      // Check if we already have a recent leave message for this user (within last 5 seconds)
-      setMessages((prev) => {
-        const fiveSecondsAgo = Date.now() - 5000;
-        const isDuplicate = prev.some(m => 
-          m.isSystem && 
-          m.content === systemMessage.content &&
-          new Date(m.createdAt).getTime() > fiveSecondsAgo
-        );
-        
-        // Only add if not a duplicate
-        if (isDuplicate) {
-          return prev;
-        }
-        
-        // Show notification only when adding the system message
-        setTimeout(() => {
-          notifications.info(`${data.nickname} left the room`);
-        }, 0);
-        
-        return [...prev, systemMessage];
-      });
+      setMessages((prev) => [...prev, systemMessage]);
+      
+      // Show notification
+      setTimeout(() => {
+        notifications.info(`${data.nickname} left the room`);
+      }, 0);
     });
 
     // Backend event: new_message
