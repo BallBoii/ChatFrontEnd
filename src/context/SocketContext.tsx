@@ -22,6 +22,7 @@ interface SocketContextType {
   sendFile: (files: File[], description?: string) => Promise<void>;
   deleteMessage: (messageId: string) => void;
   leaveRoom: () => void;
+  disconnect: () => void;
   participantCount: number;
   participants: string[]; // List of all nicknames in the room
   nickname: string;
@@ -284,6 +285,22 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => clearInterval(heartbeatInterval);
   }, [socket, connected]);
 
+  // Handle page close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (socket && roomToken && sessionToken) {
+        socket.emit('leave_room');
+        socket.disconnect();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [socket, roomToken, sessionToken]);
+
   const setUsername = useCallback((username: string) => {
     if (!socket) return;
 
@@ -318,14 +335,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     socket.emit('join_room', { roomToken: roomTkn, sessionToken: sessionTkn });
 
-    // const doJoin = () => socket.emit('join_room', { roomToken: roomTkn, sessionToken: sessionTkn });
-
-    // if (socket.connected) {
-    //   doJoin();
-    // } else {
-    //   socket.once('connect', doJoin);
-    //   socket.connect();
-    // }
   }, [socket]);
 
 
@@ -463,6 +472,23 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setSessionToken('');
   }, [socket]);
 
+  const disconnect = useCallback(() => {
+    if (!socket) return;
+
+    if (roomToken) {
+      socket.emit('leave_room');
+    }
+
+    socket.disconnect();
+
+    setMessages([]);
+    setParticipantCount(0);
+    setParticipants([]);
+    setRoomToken('');
+    setSessionToken('');
+    setNickname('');
+  }, [socket, roomToken]);
+
   return (
     <SocketContext.Provider
       value={{
@@ -480,6 +506,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendFile,
         deleteMessage,
         leaveRoom,
+        disconnect,
         participantCount,
         participants, // Add participants to context
         nickname,

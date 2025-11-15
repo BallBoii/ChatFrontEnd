@@ -140,8 +140,8 @@ function hashString(str: string): string {
   // Convert to positive number and then to base36 (0-9, a-z)
   const hashStr = Math.abs(hash).toString(36);
   
-  // Return first 4 characters, padded with '0' if needed
-  return hashStr.substring(0, 4).padEnd(4, '0');
+  // Return first 6 characters, padded with '0' if needed
+  return hashStr.substring(0, 6).padEnd(6, '0');
 }
 
 export const ghostAPI = {
@@ -159,7 +159,7 @@ export const ghostAPI = {
     const combinedNames = users.join(":");
     const hashedName = hashString(combinedNames);
 
-    // DM room name format: 4-character hash
+    // DM room name format: 6-character hash
     const dmName = hashedName;
 
     // Create room with isDM flag (backend already supports this)

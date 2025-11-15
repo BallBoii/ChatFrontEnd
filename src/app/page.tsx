@@ -34,7 +34,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
-  const { messages, joinRoom, sendMessage, sendImage, sendFile, sendSticker, leaveRoom, participantCount, participants, nickname } = useSocket();
+  const { messages, joinRoom, sendMessage, sendImage, sendFile, sendSticker, leaveRoom, disconnect, participantCount, participants, nickname } = useSocket();
   const { success, error } = useEventNotifications();
 
   // Preload sticker map on app mount
@@ -81,6 +81,7 @@ export default function App() {
 
   const handleBackToSetup = () => {
     setUsernameSet(false);
+    disconnect();
   };
 
   const handleJoin = async (joinedSession: Session) => {
